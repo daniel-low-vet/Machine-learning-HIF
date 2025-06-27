@@ -13,11 +13,9 @@
 
 **Files in this Repository**
 
-📂 model.joblib – Serialized trained model
+📂 config.json – Metadata file
 
-📂 target_encoders.joblib – Encoders for categorical variables
-
-📂 training_params.json – Model hyperparameters
+📂 Code – Analytic code
 
 📂 MIT LICENSE - CC Attributions 4.0 Open Source License
 
