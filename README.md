@@ -1,7 +1,7 @@
 ## Machine learning accurately detects canine humeral intracondylar fissure from plain radiographs of the elbow
 
 **Overview**
-* This repository contains the analytic code and model weights.
+* This repository contains the analytic code and model weights for the above study, presented at the European College of Veterinary Surgeons Annual Scientific Meeting 2025.
 
 **Model**
 
@@ -17,6 +17,6 @@
 
 📂 Code – Analytic code
 
-📂 MIT LICENSE - CC Attributions 4.0 Open Source License
+📂 LICENSE - CC Attributions 4.0 Open Source License
 
 📂 README.md – This documentation
