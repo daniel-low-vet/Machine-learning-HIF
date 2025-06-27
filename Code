@@ -1,0 +1,94 @@
+!pip install transformers torch torchvision matplotlib safetensors
+!pip install torchcam
+
+from transformers import AutoConfig, AutoModelForImageClassification
+from safetensors.torch import load_file
+import torch
+from PIL import Image
+from torchvision import transforms
+import os
+import random
+from torch import nn
+from torch.autograd import Function
+import torch.nn.functional as F
+import matplotlib.pyplot as plt
+import numpy as np
+from torchcam.methods import GradCAM
+import cv2
+
+# Load the config
+config = AutoConfig.from_pretrained('config.json')
+
+# Initialize the model using the config
+model = AutoModelForImageClassification.from_config(config)
+
+# Load the model weights from the .safetensors file
+weights_path = 'model.safetensors'
+state_dict = load_file(weights_path)
+
+# Load the state dict into the model
+model.load_state_dict(state_dict)
+
+# Set model to evaluation mode
+model.eval()
+
+# Specify the directory containing the images
+image_directory = '#specify directory'
+
+# Select a random image
+random_image_file = random.choice(image_files)
+random_image_path = os.path.join(image_directory, random_image_file)
+
+# Load and preprocess the random image
+image = Image.open(random_image_path).convert('RGB')
+
+# Preprocessing based on config.json
+preprocess = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.47853944, 0.4732864, 0.47434163]),
+])
+
+input_tensor = preprocess(image).unsqueeze(0)  # Add batch dimension
+
+# Print the selected image path
+print("Randomly selected image:", random_image_path)
+
+# Initialize Grad-CAM on the appropriate layer
+target_layer = 'convnext.encoder.stages.3.layers.0.dwconv'
+gradcam = GradCAM(model, target_layer=target_layer)
+
+# Forward pass
+output = model(input_tensor)
+
+# Access the logits from the model output
+logits = output.logits
+
+# Get the predicted class index
+class_idx = logits.argmax(dim=1).item()
+
+# Generate the heatmap using torchcam
+activation_map = gradcam(class_idx, scores=logits)
+
+tensor_map = activation_map[0]
+print("Activation Map Shape:", tensor_map.shape)
+print("Activation Map Values:", tensor_map)
+print("Original Image Size:", image.size)
+
+# Process the activation map to overlay it on the original image
+heatmap = tensor_map.mean(dim=0).detach().numpy()
+heatmap = np.clip(heatmap, 0, 1)  # Ensure values are in [0, 1]
+heatmap = cv2.resize(heatmap, (image.size[0], image.size[1]))
+
+# Normalize and display heatmap
+heatmap_normalized = (heatmap * 255).astype(np.uint8)
+heatmap_colored = cv2.applyColorMap(heatmap_normalized, cv2.COLORMAP_JET)
+image_np = np.array(image)
+image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+alpha = 0.4
+overlay = cv2.addWeighted(image_bgr, 1 - alpha, heatmap_colored, alpha, 0)
+overlay_image = Image.fromarray(cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB))
+overlay_image.show()
+plt.imshow(overlay_image)
+plt.axis('off')
+plt.show()
